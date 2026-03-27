@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="fade-in">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">
+      <i class="bi bi-clock-history me-2"></i>Inspection History
+    </h2>
+    <div>
+      <button class="btn btn-outline-primary btn-modern me-2" onclick="location.reload()">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+      </button>
+      <button class="btn btn-outline-secondary btn-modern me-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <i class="bi bi-funnel me-1"></i>Advanced Filters
+      </button>
+      <div class="btn-group">
+        <a href="{{ url_for('export_csv') }}" class="btn btn-outline-success btn-modern">
+          <i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV
+        </a>
+        <a href="{{ url_for('export_excel') }}" class="btn btn-outline-success btn-modern">
+          <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Search -->
+  <div class="card modern-card mb-4">
+    <div class="card-body">
+      <form method="GET" action="{{ url_for('inspection_history') }}" class="d-flex gap-3 align-items-center">
+        <div class="flex-grow-1">
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control" id="search" name="search" placeholder="Search across all fields (product, lot, inspector, defect type, notes)..." value="{{ filters.search }}">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-modern">
+          <i class="bi bi-search me-1"></i>Search
+        </button>
+        {% if filters.search or filters.product_code or filters.lot_number or filters.inspector_name or filters.result or filters.defect_type or filters.date_from or filters.date_to or filters.confidence_min or filters.confidence_max %}
+          <a href="{{ url_for('inspection_history') }}" class="btn btn-outline-secondary btn-modern">
+            <i class="bi bi-x-circle me-1"></i>Clear All
+          </a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card modern-card text-center">
+        <div class="card-body">
+          <div class="h3 text-primary">{{ stats.total }}</div>
+          <div class="text-muted">Total Inspections</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card modern-card text-center">
+        <div class="card-body">
+          <div class="h3 text-success">{{ stats.ok }}</div>
+          <div class="text-muted">Passed (OK)</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card modern-card text-center">
+        <div class="card-body">
+          <div class="h3 text-danger">{{ stats.ng }}</div>
+          <div class="text-muted">Failed (NG)</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card modern-card text-center">
+        <div class="card-body">
+          <div class="h3 text-info">{{ stats.filtered }}</div>
+          <div class="text-muted">Filtered Results</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Filter Form -->
+  <div class="collapse mb-4" id="filterCollapse">
+    <div class="card modern-card">
+      <div class="card-header">
+        <h6 class="mb-0">
+          <i class="bi bi-funnel me-2"></i>Advanced Filters
+        </h6>
+      </div>
+      <div class="card-body">
+        <form method="GET" action="{{ url_for('inspection_history') }}" id="filterForm">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label for="product_code" class="form-label">
+                <i class="bi bi-box me-1"></i>Product Code
+              </label>
+              <input type="text" class="form-control" id="product_code" name="product_code" placeholder="Enter product code..." value="{{ filters.product_code }}">
+            </div>
+
+            <div class="col-md-4">
+              <label for="lot_number" class="form-label">
+                <i class="bi bi-tags me-1"></i>Lot Number
+              </label>
+              <input type="text" class="form-control" id="lot_number" name="lot_number" placeholder="Enter lot number..." value="{{ filters.lot_number }}">
+            </div>
+
+            <div class="col-md-4">
+              <label for="inspector_name" class="form-label">
+                <i class="bi bi-person me-1"></i>Inspector
+              </label>
+              <select class="form-select" id="inspector_name" name="inspector_name">
+                <option value="">All Inspectors</option>
+                {% for inspector in inspectors %}
+                  <option value="{{ inspector.inspector_name }}" {% if filters.inspector_name == inspector.inspector_name %}selected{% endif %}>
+                    {{ inspector.inspector_name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label for="result" class="form-label">
+                <i class="bi bi-flag me-1"></i>Result
+              </label>
+              <select class="form-select" id="result" name="result">
+                <option value="">All Results</option>
+                <option value="OK" {% if filters.result == 'OK' %}selected{% endif %}>OK</option>
+                <option value="NG" {% if filters.result == 'NG' %}selected{% endif %}>NG</option>
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label for="defect_type" class="form-label">
+                <i class="bi bi-bug me-1"></i>Defect Type
+              </label>
+              <select class="form-select" id="defect_type" name="defect_type">
+                <option value="">All Defect Types</option>
+                {% for defect in defect_types %}
+                  <option value="{{ defect.defect_type }}" {% if filters.defect_type == defect.defect_type %}selected{% endif %}>
+                    {{ defect.defect_type }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label for="date_from" class="form-label">
+                <i class="bi bi-calendar me-1"></i>Date From
+              </label>
+              <input type="date" class="form-control" id="date_from" name="date_from" value="{{ filters.date_from }}">
+            </div>
+
+            <div class="col-md-3">
+              <label for="date_to" class="form-label">
+                <i class="bi bi-calendar me-1"></i>Date To
+              </label>
+              <input type="date" class="form-control" id="date_to" name="date_to" value="{{ filters.date_to }}">
+            </div>
+
+            <div class="col-md-3">
+              <label for="confidence_min" class="form-label">
+                <i class="bi bi-speedometer me-1"></i>Min Confidence (%)
+              </label>
+              <input type="number" class="form-control" id="confidence_min" name="confidence_min" min="0" max="100" step="0.1" placeholder="0" value="{{ filters.confidence_min }}">
+            </div>
+
+            <div class="col-md-3">
+              <label for="confidence_max" class="form-label">
+                <i class="bi bi-speedometer me-1"></i>Max Confidence (%)
+              </label>
+              <input type="number" class="form-control" id="confidence_max" name="confidence_max" min="0" max="100" step="0.1" placeholder="100" value="{{ filters.confidence_max }}">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">&nbsp;</label>
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-modern">
+                  <i class="bi bi-search me-1"></i>Apply Filters
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-modern" onclick="clearAdvancedFilters()">
+                  <i class="bi bi-x-circle me-1"></i>Clear Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% if inspections %}
+    <div class="card modern-card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+          <i class="bi bi-table me-2"></i>Inspection Records
+        </h6>
+        <span class="badge bg-primary">{{ inspections|length }} records</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover modern-table">
+            <thead>
+              <tr>
+                <th><i class="bi bi-hash me-1"></i>#</th>
+                <th><i class="bi bi-box me-1"></i>Product</th>
+                <th><i class="bi bi-tags me-1"></i>Lot</th>
+                <th><i class="bi bi-person me-1"></i>Inspector</th>
+                <th><i class="bi bi-calendar me-1"></i>Date</th>
+                <th><i class="bi bi-flag me-1"></i>Result</th>
+                <th><i class="bi bi-speedometer me-1"></i>Confidence</th>
+                <th><i class="bi bi-bug me-1"></i>Defect Type</th>
+                <th><i class="bi bi-images me-1"></i>Images</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in inspections %}
+                <tr>
+                  <td>{{ row.inspection_id }}</td>
+                  <td>{{ row.product_code }}</td>
+                  <td>{{ row.lot_number }}</td>
+                  <td>{{ row.inspector_name }}</td>
+                  <td>{{ row.inspection_time }}</td>
+                  <td>
+                    {% if row.result == 'OK' %}
+                      <span class="badge badge-ok">OK</span>
+                    {% else %}
+                      <span class="badge badge-ng">NG</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ row.ai_confidence }}%</td>
+                  <td>
+                    {% if row.defect_type and row.defect_type != 'None' %}
+                      <span class="badge bg-secondary">{{ row.defect_type }}</span>
+                    {% else %}
+                      <span class="text-muted">None</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="d-flex gap-2">
+                      <!-- Original Image -->
+                      <div class="text-center">
+                        <div class="small text-muted mb-1">Original</div>
+                        <button type="button" class="btn btn-outline-light btn-sm p-1" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#imageModal" 
+                                data-bs-img-url="{{ url_for('uploaded_file', filename=row.image_path) }}" 
+                                data-bs-img-title="Original Image - {{ row.product_code }}">
+                          <img src="{{ url_for('uploaded_file', filename=row.image_path) }}" 
+                               alt="Original" 
+                               class="thumbnail">
+                        </button>
+                      </div>
+                      
+                      <!-- Annotated Image -->
+                      {% if row.annotated_image_path %}
+                        <div class="text-center">
+                          <div class="small text-muted mb-1">Annotated</div>
+                          <button type="button" class="btn btn-outline-light btn-sm p-1" 
+                                  data-bs-toggle="modal" 
+                                  data-bs-target="#imageModal" 
+                                  data-bs-img-url="{{ url_for('uploaded_file', filename=row.annotated_image_path) }}" 
+                                  data-bs-img-title="AI Analysis - {{ row.product_code }}">
+                            <img src="{{ url_for('uploaded_file', filename=row.annotated_image_path) }}" 
+                                 alt="Annotated" 
+                                 class="thumbnail">
+                          </button>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="card modern-card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-inbox me-2" style="font-size: 3rem;"></i>
+        <h5 class="mt-3">No Inspections Yet</h5>
+        <p class="text-muted">Start by uploading an image on the <a href="{{ url_for('inspection') }}" class="text-primary">Inspection</a> page to begin.</p>
+        <a href="{{ url_for('inspection') }}" class="btn btn-primary btn-modern mt-3">
+          <i class="bi bi-camera me-2"></i>Start Inspection
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="imageModalLabel">Image</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="imageModalImg" src="" class="img-fluid" alt="Inspection image">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Modal functionality
+const imageModal = document.getElementById('imageModal');
+if (imageModal) {
+  imageModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const imgUrl = button.getAttribute('data-bs-img-url');
+    const imgTitle = button.getAttribute('data-bs-img-title');
+
+    const modalImg = document.getElementById('imageModalImg');
+    const modalTitle = document.getElementById('imageModalLabel');
+
+    if (modalImg) modalImg.src = imgUrl;
+    if (modalTitle) modalTitle.textContent = imgTitle;
+  });
+}
+
+// Filter form enhancements
+document.addEventListener('DOMContentLoaded', function() {
+  const filterForm = document.getElementById('filterForm');
+  const filterInputs = filterForm ? filterForm.querySelectorAll('select, input') : [];
+
+  // Clear advanced filters function
+  window.clearAdvancedFilters = function() {
+    filterInputs.forEach(input => {
+      if (input.type === 'date' || input.type === 'text' || input.type === 'number') {
+        input.value = '';
+      } else if (input.tagName === 'SELECT') {
+        input.selectedIndex = 0;
+      }
+    });
+  };
+
+  // Show active filters count
+  function updateActiveFilters() {
+    const activeFilters = Array.from(filterInputs).filter(input => {
+      if (input.type === 'date' || input.type === 'text' || input.type === 'number') {
+        return input.value !== '';
+      } else if (input.tagName === 'SELECT') {
+        return input.selectedIndex > 0;
+      }
+      return false;
+    });
+
+    const filterBtn = document.querySelector('[data-bs-target="#filterCollapse"]');
+    if (filterBtn && activeFilters.length > 0) {
+      filterBtn.innerHTML = `<i class="bi bi-funnel-fill me-1"></i>Advanced Filters (${activeFilters.length})`;
+    } else if (filterBtn) {
+      filterBtn.innerHTML = `<i class="bi bi-funnel me-1"></i>Advanced Filters`;
+    }
+  }
+
+  // Update on page load
+  updateActiveFilters();
+
+  // Update when filters change
+  filterInputs.forEach(input => {
+    input.addEventListener('change', updateActiveFilters);
+  });
+
+  // Quick search enhancements
+  const searchInput = document.getElementById('search');
+  if (searchInput) {
+    searchInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.closest('form').submit();
+      }
+    });
+  }
+
+  // Auto-submit on enter for filter inputs (optional)
+  // filterInputs.forEach(input => {
+  //   if (input.type === 'text') {
+  //     input.addEventListener('keypress', function(e) {
+  //       if (e.key === 'Enter') {
+  //         e.preventDefault();
+  //         filterForm.submit();
+  //       }
+  //     });
+  //   }
+  // });
+
+  // Add loading state for forms
+  const forms = document.querySelectorAll('form');
+  forms.forEach(form => {
+    form.addEventListener('submit', function() {
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Searching...';
+      }
+    });
+  });
+});
+</script>
+{% endblock %}
