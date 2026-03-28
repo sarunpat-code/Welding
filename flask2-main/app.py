@@ -336,9 +336,12 @@ def _migrate_inspections_table(db: sqlite3.Connection) -> None:
 
 # --- AI inference utilities ------------------------------------------------
 
+# --- AI inference utilities -------------------------------------------
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEIGHTS_PATH = os.environ.get(
     "WEIGHTS_PATH",
-    "C:/Users/sarun/OneDrive/Desktop/flask2-main/flask2-main/train9/weights/best.pt"
+    os.path.join(BASE_DIR, "train9", "weights", "best.pt")
 )
 _model = None
 
