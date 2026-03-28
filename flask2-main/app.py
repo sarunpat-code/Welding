@@ -336,8 +336,6 @@ def _migrate_inspections_table(db: sqlite3.Connection) -> None:
 
 # --- AI inference utilities ------------------------------------------------
 
-# --- AI inference utilities -------------------------------------------
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEIGHTS_PATH = os.environ.get(
     "WEIGHTS_PATH",
