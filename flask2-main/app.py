@@ -338,7 +338,7 @@ def _migrate_inspections_table(db: sqlite3.Connection) -> None:
 
 WEIGHTS_PATH = os.environ.get(
     "WEIGHTS_PATH",
-    "flask2-main/train9/weights/best.pt"
+    "C:\Users\sarun\OneDrive\Desktop\flask2-main\flask2-main\train9\weights\best.pt"
 )
 _model = None
 
