@@ -337,8 +337,8 @@ def _migrate_inspections_table(db: sqlite3.Connection) -> None:
 # --- AI inference utilities ------------------------------------------------
 
 WEIGHTS_PATH = os.environ.get(
-    "WEIGHTS_PATH",
-    "train9/weights/best.pt
+   "WEIGHTS_PATH",
+        os.path.join(BASE_DIR, "train9", "weights", "best.pt")
 )
 _model = None
 
